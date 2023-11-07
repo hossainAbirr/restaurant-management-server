@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 2500;
 
@@ -25,17 +25,37 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const foodCollection = client.db('RestaurantDB').collection('foods')
+    const orderCollection = client.db('RestaurantDB').collection('Ordered foods')
 
-    app.get('/allfood', async(req, res) => {
+    // get all foods 
+    app.get('/foods', async(req, res) => {
         const cursor = foodCollection.find();
         const result = await cursor.toArray();
         res.send(result);
     })
 
+    // get single food 
+
+    app.get('/foods/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = {_id : new ObjectId(id)};
+      const result = await foodCollection.findOne(query);
+      res.send(result)
+    })
+
+
     app.post('/addfood', async(req, res) => {
         const food = req.body;
         const result = await foodCollection.insertOne(food)
         res.send(result);
+    })
+
+    // add to cart 
+    app.post('/order', async(req, res) => {
+      const food = req.body;
+      console.log(food);
+      const result = await orderCollection.insertOne(food);
+      res.send(result)
     })
 
     // Send a ping to confirm a successful connection
