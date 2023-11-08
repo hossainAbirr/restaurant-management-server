@@ -71,13 +71,18 @@ async function run() {
 
     app.get('/myfoods', async(req, res) => {
       console.log(req.query?.email);
-      let query = {};
-      if(req.query.emai){
-        query = {email: req.query.email}
-      }
+      const query = { providerEmail : req.query.email};
       const result = await foodCollection.find(query).toArray();
       res.send(result)
       
+    })
+
+    // top foods 
+    app.get('/topfoods', async(req, res) => {
+      const sort = {soldItems : -1}
+      const cursor = foodCollection.find().sort(sort).limit(6);
+      const result = await cursor.toArray();
+      res.send(result);
     })
 
     // get orders
@@ -85,12 +90,7 @@ async function run() {
       if (req.query?.email !== req.user?.email) {
         return res.status(403).send({ message: "Forbidden Access" });
       }
-      console.log(req?.user);
-      console.log(req.query?.email);
-      let query = {};
-      if (req.query?.email) {
-        query = { email: req.cookies.email };
-      }
+      const query = { buyerEmail:req.cookies?.email};
       const result = await orderCollection.find(query).toArray();
       console.log(result);
       res.send(result);
@@ -139,6 +139,20 @@ async function run() {
     //   const result = await orderCollection.updateOne(filter, upDatedDoc);
     //   res.send(result);
     // });
+
+    app.patch('/foods/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const updatedInfo = req.body;
+      console.log(updatedInfo);
+      const updatedDoc = {
+        $set: {
+          soldItems : updatedInfo.soldItems
+        }
+      }
+      const result = await foodCollection.updateOne(query, updatedDoc)
+      res.send(result)
+    })
 
     app.delete("/myorders/:id", async (req, res) => {
       const id = req.params.id;
