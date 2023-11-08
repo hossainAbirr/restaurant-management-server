@@ -68,29 +68,34 @@ async function run() {
       const result = await foodCollection.findOne(query);
       res.send(result);
     });
+    app.get("/updatefood/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await foodCollection.findOne(query);
+      res.send(result);
+    });
 
-    app.get('/myfoods', async(req, res) => {
+    app.get("/myfoods", async (req, res) => {
       console.log(req.query?.email);
-      const query = { providerEmail : req.query.email};
+      const query = { providerEmail: req.query.email };
       const result = await foodCollection.find(query).toArray();
-      res.send(result)
-      
-    })
+      res.send(result);
+    });
 
-    // top foods 
-    app.get('/topfoods', async(req, res) => {
-      const sort = {soldItems : -1}
+    // top foods
+    app.get("/topfoods", async (req, res) => {
+      const sort = { soldItems: -1 };
       const cursor = foodCollection.find().sort(sort).limit(6);
       const result = await cursor.toArray();
       res.send(result);
-    })
+    });
 
     // get orders
     app.get("/myorders", varifyRestaurantUser, async (req, res) => {
       if (req.query?.email !== req.user?.email) {
         return res.status(403).send({ message: "Forbidden Access" });
       }
-      const query = { buyerEmail:req.cookies?.email};
+      const query = { buyerEmail: req.cookies?.email };
       const result = await orderCollection.find(query).toArray();
       console.log(result);
       res.send(result);
@@ -140,19 +145,40 @@ async function run() {
     //   res.send(result);
     // });
 
-    app.patch('/foods/:id', async(req, res) => {
+    app.patch("/foods/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const updatedInfo = req.body;
       console.log(updatedInfo);
       const updatedDoc = {
         $set: {
-          soldItems : updatedInfo.soldItems
-        }
-      }
-      const result = await foodCollection.updateOne(query, updatedDoc)
-      res.send(result)
-    })
+          soldItems: updatedInfo.soldItems,
+        },
+      };
+      const result = await foodCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    });
+    app.patch("/updatefood/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedInfo = req.body;
+      console.log(updatedInfo);
+      const updatedDoc = {
+        $set: {
+          soldItems: updatedInfo.soldItems,
+          foodName : updatedInfo.foodName ,
+          providerEmail: updatedInfo.providerEmail,
+          providerName : updatedInfo.providerName,
+          category : updatedInfo.category,
+          quantity : updatedInfo.quantity,
+          price : updatedInfo.price,
+          photo: updatedInfo.photo,
+          description: updatedInfo.description,
+        },
+      };
+      const result = await foodCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    });
 
     app.delete("/myorders/:id", async (req, res) => {
       const id = req.params.id;
