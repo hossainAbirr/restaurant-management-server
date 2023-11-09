@@ -11,7 +11,12 @@ const port = process.env.PORT || 2500;
 
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "restaurant-management-client.web.app",
+      "restaurant-management-client.firebaseapp.com",
+    ],
     credentials: true,
   })
 );
@@ -90,6 +95,23 @@ async function run() {
       res.send(result);
     });
 
+    // pagination
+    app.get("/countproducts", async (req, res) => {
+      const count = await foodCollection.estimatedDocumentCount();
+      res.sendStatus(count);
+    });
+
+    app.get("/pagination", async (req, res) => {
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+      const pageData = await foodCollection
+        .find()
+        .skip(page * size)
+        .limit(size)
+        .toArray();
+      res.sendStatus(pageData);
+    });
+
     // get orders
     app.get("/myorders", varifyRestaurantUser, async (req, res) => {
       if (req.query?.email !== req.user?.email) {
@@ -125,25 +147,23 @@ async function run() {
       res
         .cookie("token", token, {
           httpOnly: true,
-          secure: true,
-          sameSite: "none",
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         })
         .send({ success: true });
     });
 
-    // app.patch("/orders/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const filter = { _id: new ObjectId(id) };
-    //   const updatedInfo = req.body;
-    //   // console.log(updatedInfo);
-    //   const upDatedDoc = {
-    //     $set: {
-    //       status: updatedInfo.status,
-    //     },
-    //   };
-    //   const result = await orderCollection.updateOne(filter, upDatedDoc);
-    //   res.send(result);
-    // });
+    app.post("/logout", async (req, res) => {
+      res
+        .clearCookie("token", {
+          maxAge: 0,
+          secure: process.env.NODE_ENV === "production" ? true : false,
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        .send({ success: true });
+    });
+
+    // sold Count
 
     app.patch("/foods/:id", async (req, res) => {
       const id = req.params.id;
@@ -158,6 +178,8 @@ async function run() {
       const result = await foodCollection.updateOne(query, updatedDoc);
       res.send(result);
     });
+
+    // update api
     app.patch("/updatefood/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -166,12 +188,12 @@ async function run() {
       const updatedDoc = {
         $set: {
           soldItems: updatedInfo.soldItems,
-          foodName : updatedInfo.foodName ,
+          foodName: updatedInfo.foodName,
           providerEmail: updatedInfo.providerEmail,
-          providerName : updatedInfo.providerName,
-          category : updatedInfo.category,
-          quantity : updatedInfo.quantity,
-          price : updatedInfo.price,
+          providerName: updatedInfo.providerName,
+          category: updatedInfo.category,
+          quantity: updatedInfo.quantity,
+          price: updatedInfo.price,
           photo: updatedInfo.photo,
           description: updatedInfo.description,
         },
@@ -180,6 +202,7 @@ async function run() {
       res.send(result);
     });
 
+    // delete bookings
     app.delete("/myorders/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -187,9 +210,6 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/logout", async (req, res) => {
-      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
-    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
