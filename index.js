@@ -96,9 +96,10 @@ async function run() {
     });
 
     // pagination
-    app.get("/countproducts", async (req, res) => {
-      const count = await foodCollection.estimatedDocumentCount();
-      res.sendStatus(count);
+
+    app.get("/countfoods", async (req, res) => {
+      const countfoods = await foodCollection.estimatedDocumentCount();
+      res.send({ countfoods });
     });
 
     app.get("/pagination", async (req, res) => {
@@ -109,7 +110,7 @@ async function run() {
         .skip(page * size)
         .limit(size)
         .toArray();
-      res.sendStatus(pageData);
+      res.send(pageData);
     });
 
     // get orders
