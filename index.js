@@ -14,8 +14,8 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
-      "restaurant-management-client.web.app",
-      "restaurant-management-client.firebaseapp.com",
+      "https://restaurant-management-client.web.app",
+      "https://stupendous-elf-880ad6.netlify.app",
     ],
     credentials: true,
   })
@@ -35,6 +35,7 @@ const varifyRestaurantUser = async (req, res, next) => {
       console.log(err);
       return res.status(401).send({ message: "Unauthorized Access" });
     }
+
     req.user = decoded;
     next();
   });
@@ -54,7 +55,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     const foodCollection = client.db("RestaurantDB").collection("foods");
     const orderCollection = client
       .db("RestaurantDB")
@@ -68,6 +69,12 @@ async function run() {
     });
     // get single food
     app.get("/foods/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await foodCollection.findOne(query);
+      res.send(result);
+    });
+    app.get("/purchase/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await foodCollection.findOne(query);
@@ -118,9 +125,9 @@ async function run() {
       if (req.query?.email !== req.user?.email) {
         return res.status(403).send({ message: "Forbidden Access" });
       }
-      const query = { buyerEmail: req.cookies?.email };
+      console.log("what is cookies", req.cookies);
+      const query = { buyerEmail: req.user?.email };
       const result = await orderCollection.find(query).toArray();
-      console.log(result);
       res.send(result);
     });
 
@@ -141,14 +148,13 @@ async function run() {
     // jwt
     app.post("/jwt", async (req, res) => {
       const user = req.body;
-      console.log("login", user);
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_RESTAURANT, {
         expiresIn: "1h",
       });
       res
         .cookie("token", token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
+          secure: process.env.NODE_ENV === "production" ? true : false,
           sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         })
         .send({ success: true });
@@ -174,6 +180,7 @@ async function run() {
       const updatedDoc = {
         $set: {
           soldItems: updatedInfo.soldItems,
+          quantity: updatedInfo.availableFood,
         },
       };
       const result = await foodCollection.updateOne(query, updatedDoc);
@@ -208,6 +215,13 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await orderCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.delete("/delete/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await foodCollection.deleteOne(query);
       res.send(result);
     });
 
